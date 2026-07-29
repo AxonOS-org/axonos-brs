@@ -1,0 +1,26 @@
+[package]
+name = "axonos-brs"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+description = "The BCI Relevance Score, as one deterministic integer implementation: a saturating combiner that cannot clip, cannot exceed its bounds, and produces the same byte on every platform."
+license = "Apache-2.0 OR MIT"
+repository = "https://github.com/AxonOS-org/axonos-brs"
+keywords = ["bci", "scoring", "no-std", "deterministic", "radar"]
+categories = ["no-std", "algorithms"]
+
+# Deliberately rlib only. Declaring cdylib here would make every host build
+# demand a panic handler this no_std crate does not carry; the WebAssembly
+# artifact is produced on demand instead:
+#
+#   cargo rustc --release --target wasm32-unknown-unknown --crate-type cdylib
+#
+# One source, two targets, and the CI job that builds both is what makes the
+# claim "the browser recomputes what the scanner published" checkable rather
+# than asserted.
+
+[dependencies]
+
+[profile.release]
+panic = "abort"
+opt-level = "z"
