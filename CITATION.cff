@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+title: "AxonOS BCI Relevance Score"
+message: "If you use this software, please cite it as below."
+type: software
+# Denis Yermakou is the author; The AxonOS Project is the umbrella the work is
+# published under. Both are listed because a citation should credit the person
+# and locate the project.
+authors:
+  - family-names: "Yermakou"
+    given-names: "Denis"
+    email: "connect@axonos.org"
+    website: "https://axonos.org"
+  - name: "The AxonOS Project"
+    website: "https://axonos.org"
+repository-code: "https://github.com/AxonOS-org/axonos-brs"
+url: "https://axonos.org"
+abstract: "The relevance score as one deterministic integer implementation: a saturating combiner that cannot clip and produces the same byte on every platform."
+version: 0.1.1
+date-released: "2026-08-01"
+license: "Apache-2.0 OR MIT"
+# Copyright 2026 Denis Yermakou. See NOTICE for attribution terms.
+keywords:
+  - brain-computer-interface
+  - no-std
+  - rust
+  - deterministic
