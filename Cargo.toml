@@ -1,6 +1,6 @@
 [package]
 name = "axonos-brs"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.75"
 description = "The BCI Relevance Score, as one deterministic integer implementation: a saturating combiner that cannot clip, cannot exceed its bounds, and produces the same byte on every platform."

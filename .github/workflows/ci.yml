@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    name: Format, lints, tests, docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test --locked
+      - run: RUSTDOCFLAGS="-D warnings" cargo doc --no-deps
+
+  no_std:
+    name: Builds without std
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: thumbv7em-none-eabihf
+      # The crate claims no_std, and the only way to hold a crate to that is to
+      # build it for a target that has no std to fall back on.
+      - run: cargo build --locked --release --target thumbv7em-none-eabihf
+
+  cross_target_identical:
+    name: Native and WebAssembly agree byte for byte
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip1, wasm32-unknown-unknown
+      - uses: bytecodealliance/actions/wasmtime/setup@v1
+
+      # The README says the same score must come out of the scanner on a Linux
+      # runner and out of the same code compiled to WebAssembly in a reader's
+      # browser, and that *identical* is a stronger word than *close*. That was
+      # a statement of intent with nothing behind it until this job existed.
+      #
+      # A single differing byte fails the build, which is what the claim is
+      # worth if it is worth anything.
+      - name: Emit the corpus natively
+        run: cargo run --locked --release --example emit > native.txt
+
+      - name: Emit the corpus from WebAssembly
+        run: |
+          cargo build --locked --release --target wasm32-wasip1 --example emit
+          wasmtime target/wasm32-wasip1/release/examples/emit.wasm > wasm.txt
+
+      - name: They must be identical
+        run: |
+          if ! diff -u native.txt wasm.txt; then
+            echo "::error::native and WebAssembly disagree — the determinism claim in the README is false as written"
+            exit 1
+          fi
+          echo "identical across targets: $(wc -l < native.txt) projects"
+
+      # wasm32-wasip1 can print, which is why it is the target that gets
+      # diffed. The browser's wasm32-unknown-unknown cannot, so it is built
+      # separately to prove that target compiles at all — the README points a
+      # reader at exactly this command. Neither check alone is enough; together
+      # they are what the README claims.
+      - name: The browser target compiles
+        run: cargo rustc --locked --release --target wasm32-unknown-unknown --crate-type cdylib

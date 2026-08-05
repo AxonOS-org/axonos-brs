@@ -79,6 +79,44 @@ The gate stays at 40, and a single acquisition modality still scores exactly 40
 arithmetic. Three projects of 117 cross below the line, all from 40 to 36, each
 having tripped exactly one weak rule.
 
+## Recomputing a published score
+
+The radar publishes each project's **evidence vector** beside its score, in
+`data/radar.json` under `relevance_ledger`. That is what makes a published
+score disputable rather than merely visible: the keyword table that produces
+the evidence lives in the scanner, but its output does not — it is on the map,
+per project, refreshed every three hours.
+
+So any score on the map can be recomputed from public data:
+
+```sh
+# take one project's ledger from the published payload
+curl -s https://raw.githubusercontent.com/AxonOS-BCI/axonos-community-radar/main/data/radar.json \
+  | python3 -c "import json,sys; p=[x for x in json.load(sys.stdin)['projects'] if x['full_name']=='NeuroTechX/moabb'][0]; print(p['brs'], p['relevance_ledger'])"
+
+# feed the same evidence to this crate and compare
+cargo run --release --example emit | grep moabb
+```
+
+A disagreement is a bug report this project cannot argue with, which is the
+point. Two entries on the map carry no ledger and no score — they are AxonOS's
+own curated repositories, and a project that scored its own work would be
+worth less than one that did not.
+
+## What the CI proves
+
+| Job | What it establishes |
+|:--|:--|
+| `check` | formatting, clippy at `-D warnings`, the full suite, and strict docs |
+| `no_std` | the crate really builds without `std`, against a bare-metal target that has none to fall back on |
+| `cross_target_identical` | the corpus is emitted **natively and from WebAssembly**, and the two are diffed. A single differing byte fails the build |
+
+The last job is the one that matters here. This README claimed the same score
+must come out of a Linux runner and out of the same code in a browser, and that
+*identical* is a stronger word than *close* — and nothing verified it. Adding
+the job also found three defects clippy had been flagging with nobody to see
+them, because the repository had no CI at all.
+
 ## Integer arithmetic, on purpose
 
 Every value is an integer in parts per million. No floating point appears

@@ -60,6 +60,10 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+/// The conformance corpus: real projects, their evidence, their pinned scores.
+use core::cmp::Ordering;
+
+pub mod corpus;
 /// Fixed-point scale: one whole unit, in parts per million.
 pub const ONE: u64 = 1_000_000;
 
@@ -262,10 +266,13 @@ fn combine(evidence: &[Evidence]) -> (u64, u64) {
     let mut attenuation = ONE; // Π(1 − pⱼ) over negative evidence
     for e in evidence {
         let w = e.weight_ppm();
-        if e.points > 0 {
-            remaining = floor_one(remaining * (ONE - w) / ONE);
-        } else if e.points < 0 {
-            attenuation = floor_one(attenuation * (ONE - w) / ONE);
+        // Three cases, and the third is deliberate: evidence worth zero points
+        // is neither support nor penalty, and must leave the product untouched
+        // rather than multiply it by one — which would floor it needlessly.
+        match e.points.cmp(&0) {
+            Ordering::Greater => remaining = floor_one(remaining * (ONE - w) / ONE),
+            Ordering::Less => attenuation = floor_one(attenuation * (ONE - w) / ONE),
+            Ordering::Equal => {}
         }
     }
     (ONE - remaining, attenuation)
@@ -339,10 +346,14 @@ pub fn attribute(evidence: &[Evidence], out: &mut [Contribution]) -> usize {
                 continue;
             }
             let w = e.weight_ppm();
-            if e.points > 0 {
-                without_positive = floor_one(without_positive * (ONE - w) / ONE);
-            } else if e.points < 0 {
-                without_attenuation = floor_one(without_attenuation * (ONE - w) / ONE);
+            match e.points.cmp(&0) {
+                Ordering::Greater => {
+                    without_positive = floor_one(without_positive * (ONE - w) / ONE)
+                }
+                Ordering::Less => {
+                    without_attenuation = floor_one(without_attenuation * (ONE - w) / ONE)
+                }
+                Ordering::Equal => {}
             }
         }
         let combined = (ONE - without_positive) * without_attenuation / ONE;
@@ -366,11 +377,13 @@ pub fn attribute(evidence: &[Evidence], out: &mut [Contribution]) -> usize {
 pub fn score_with(evidence: &[Evidence], addition: Evidence) -> u8 {
     let (mut positive, mut attenuation) = combine(evidence);
     let w = addition.weight_ppm();
-    if addition.points > 0 {
-        let remaining = ONE - positive;
-        positive = ONE - floor_one(remaining * (ONE - w) / ONE);
-    } else if addition.points < 0 {
-        attenuation = attenuation * (ONE - w) / ONE;
+    match addition.points.cmp(&0) {
+        Ordering::Greater => {
+            let remaining = ONE - positive;
+            positive = ONE - floor_one(remaining * (ONE - w) / ONE);
+        }
+        Ordering::Less => attenuation = attenuation * (ONE - w) / ONE,
+        Ordering::Equal => {}
     }
     let combined = positive * attenuation / ONE;
     let brs = ((combined * 100 + ONE / 2) / ONE) as u8;
