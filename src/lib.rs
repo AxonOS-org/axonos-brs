@@ -63,6 +63,9 @@
 /// The conformance corpus: real projects, their evidence, their pinned scores.
 use core::cmp::Ordering;
 
+/// Analysis over a score: provenance, explanation, diagnosis, ordering.
+pub mod analysis;
+
 pub mod corpus;
 /// Fixed-point scale: one whole unit, in parts per million.
 pub const ONE: u64 = 1_000_000;

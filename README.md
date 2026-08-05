@@ -4,7 +4,7 @@
 
 ### The relevance score, as arithmetic that cannot lie about its own range.
 
-[![Tests](https://img.shields.io/badge/tests-28%20passing-0d7a5f?style=flat-square)](tests/)
+[![Tests](https://img.shields.io/badge/tests-46%20passing-0d7a5f?style=flat-square)](tests/)
 [![no_std](https://img.shields.io/badge/no__std-yes-0a4a8f?style=flat-square)](#constraints)
 [![Integer only](https://img.shields.io/badge/floating%20point-none-0a4a8f?style=flat-square)](#integer-arithmetic-on-purpose)
 [![Dependencies](https://img.shields.io/badge/dependencies-0-0a4a8f?style=flat-square)](Cargo.toml)
@@ -78,6 +78,40 @@ The gate stays at 40, and a single acquisition modality still scores exactly 40
 — so this release is not a change of inclusion policy wearing a change of
 arithmetic. Three projects of 117 cross below the line, all from 40 to 36, each
 having tripped exactly one weak rule.
+
+## Analysis
+
+The combiner answers one question. `analysis` answers the ones that follow, and
+each was written because somebody had to answer it by hand first.
+
+| | Function | What it is for |
+|--:|:--|:--|
+| 1 | `RULE_VERSION` | a published score outlives the release that computed it. Without a rule identifier, a reader comparing two snapshots cannot tell a project that improved from a rule that changed |
+| 2 | `gap_to_gate` | the map computed this by subtraction at the call site, which put the gate in two places |
+| 3 | `cheapest_lift` | the smallest verifiable evidence that clears the gate, or `None` when no single signal can. A number that would not work is worse than none |
+| 4 | `explain` | a waterfall, ordered strongest first, whose running column ends on the published score |
+| 5 | `dominance_pct` | a rule responsible for most of a score is what the score is really measuring |
+| 6 | `resolution` | how many distinct values a corpus produces. Nine across a hundred projects is a category label wearing a number, and that defect shipped here and survived thirteen releases because nothing measured it |
+| 7 | `clumping` | how many sit at the ceiling, on the gate, on the floor. Neither shows up in a mean |
+| 8 | `rank_key` | a documented total order. Ranking is where non-determinism enters a pipeline |
+| 9 | `to_wire` | eight bytes, fixed layout, carrying the rule that produced the score |
+| 10 | `wire_rule_version` | enough on its own to refuse a comparison between snapshots produced by different rules |
+| 11 | `verify_corpus` | CI checks the version CI built; this checks the version actually linked |
+| 12 | `simulate` | the counterfactual a maintainer wants: not "add one signal" but "here is my repository with topics declared and a standard named" |
+
+### The subtlety in `explain`, written down because it cost a design
+
+By-removal contributions are the right way to **rank** evidence: each measures a
+signal against the whole. They do **not** sum to the total. Under a saturating
+combiner the remaining evidence partly covers for anything removed, so each
+removal costs more than that evidence's share, and adding them up overshoots.
+The first draft of `explain` did exactly that and produced a column ending at 43
+for a score of 82.
+
+So removal decides the order and the column is built from increments: the score
+of the first line, then the first two, and so on. The last running value is the
+score itself. A test pins the non-summing property, so anyone who tries the
+obvious thing again finds out immediately.
 
 ## Recomputing a published score
 

@@ -15,8 +15,8 @@ authors:
 repository-code: "https://github.com/AxonOS-org/axonos-brs"
 url: "https://axonos.org"
 abstract: "The relevance score as one deterministic integer implementation: a saturating combiner that cannot clip and produces the same byte on every platform."
-version: 0.1.1
-date-released: "2026-08-01"
+version: 0.3.0
+date-released: "2026-08-08"
 license: "Apache-2.0 OR MIT"
 # Copyright 2026 Denis Yermakou. See NOTICE for attribution terms.
 keywords:

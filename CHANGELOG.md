@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.3.0] — 2026-08-08
+
+### Added
+- **`analysis`: twelve functions over a score.** The combiner answers what a
+  project scores; these answer the questions that follow, and every one existed
+  as hand-written arithmetic somewhere first.
+
+  `RULE_VERSION` and `to_wire`/`wire_rule_version` give a published score its
+  provenance, so two snapshots produced by different rules can be refused
+  instead of silently compared. `gap_to_gate` takes the gate out of the call
+  site. `cheapest_lift` says what would clear it, and returns `None` rather than
+  a number that would not work. `explain` renders a waterfall. `dominance_pct`
+  says whether one rule is carrying a score. `resolution` and `clumping` are the
+  diagnostics that should have existed from the start — the defect where the
+  rule returned nine distinct values across a hundred projects survived thirteen
+  releases because nothing measured it. `rank_key` fixes a total order.
+  `verify_corpus` checks the linked build rather than the built one. `simulate`
+  scores a hypothetical repository.
+
+### Fixed while writing the above
+- **`explain` was designed around arithmetic that does not hold.** By-removal
+  contributions do not sum to the total: under a saturating combiner the
+  remaining evidence partly covers for anything removed, so each removal costs
+  more than its share. The first draft summed them into a running column and
+  produced 43 for a score of 82.
+
+  Removal now decides only the *order*; the column is built from increments
+  along that order and ends on the published score. A test pins the non-summing
+  property so the obvious mistake is caught rather than repeated.
+
 ## [0.2.0] — 2026-08-04
 
 ### Added
