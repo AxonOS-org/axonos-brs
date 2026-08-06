@@ -129,14 +129,18 @@ pub fn explain(evidence: &[Evidence], out: &mut [Step]) -> usize {
     let mut order = [0usize; 32];
     let mut chosen = 0;
     while chosen < n {
+        // Iterate the pair rather than an index into both. A range loop over
+        // two slices is the shape a newer clippy flags, and this project has
+        // paid for that lint three times by discovering it in CI instead of
+        // here.
         let mut best: Option<usize> = None;
-        for i in 0..n {
-            if taken[i] {
+        for (i, (c, &t)) in contrib.iter().zip(taken.iter()).enumerate().take(n) {
+            if t {
                 continue;
             }
             match best {
                 None => best = Some(i),
-                Some(b) if contrib[i].delta > contrib[b].delta => best = Some(i),
+                Some(b) if c.delta > contrib[b].delta => best = Some(i),
                 _ => {}
             }
         }

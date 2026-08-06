@@ -1,2 +1,15 @@
 /target
-Cargo.lock
+
+# Cargo.lock is committed, deliberately.
+#
+# The usual advice is that a library should not commit one, so that a
+# consumer's resolver is free. That advice is about *consumers*, and it
+# says nothing about CI — where every job here passes --locked and a
+# missing lockfile is not a free resolver, it is a hard failure before
+# a single test runs.
+#
+# This crate has zero dependencies, so the file contains itself and
+# nothing else. It constrains no one. What it buys is that --locked
+# becomes meaningful: it now also catches a manifest bumped without its
+# lockfile, which is a defect two other repositories in this
+# organisation shipped this month.

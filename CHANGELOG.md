@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.3.1] — 2026-08-08
+
+### Fixed
+- **CI failed on both jobs that build, before a single test ran.** Every job
+  passes `--locked`, and `Cargo.lock` was in `.gitignore` — so a fresh checkout
+  had no lockfile and cargo refused with *"the lock file needs to be updated but
+  --locked was passed"*. Two red jobs, one cause, and nothing to do with the
+  code they were checking.
+
+  The lockfile is now committed. The usual advice against committing one for a
+  library is about leaving a *consumer's* resolver free; it says nothing about
+  CI, where a missing lockfile is not freedom but a hard failure. This crate has
+  zero dependencies, so the file contains itself and constrains nobody.
+
+  It also buys something. `--locked` now catches a manifest bumped without its
+  lockfile — the exact defect two other repositories in this organisation
+  shipped this month, each time surfacing as a confusing message about a
+  lockfile rather than about the version that caused it.
+
+- A range loop indexing two slices in `explain`, rewritten to iterate the pair.
+  The local clippy is older than the one CI uses and did not flag it. This
+  project has paid for that gap three times by discovering the lint in a red
+  build instead of before pushing, so the pattern is now removed on sight
+  rather than when it is reported.
+
 ## [0.3.0] — 2026-08-08
 
 ### Added
