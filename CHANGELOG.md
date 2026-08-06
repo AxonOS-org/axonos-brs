@@ -1,5 +1,45 @@
 # Changelog
 
+## [0.4.0] — 2026-08-08
+
+### Fixed
+- **The browser artifact had never been built, and could not be.**
+  `cargo rustc --crate-type cdylib --target wasm32-unknown-unknown` failed with
+  `#[panic_handler] function required, but not found`. A `no_std` dynamic
+  library has no host runtime to fall back on and must supply its own; this one
+  supplied none, so the claim that a reader's browser can recompute a published
+  score was one linker error away from false.
+
+  Supplying it inside `axonos-brs` turned out to be impossible for a better
+  reason than laziness. The crate carries `#![forbid(unsafe_code)]`, and
+  exporting a symbol under a chosen name is an unsafe operation — the linker's
+  behaviour with duplicate names is undefined — so `#[no_mangle]` is refused
+  there, correctly. Weakening the forbiddance would have traded a headline
+  property for a binding's convenience.
+
+### Added
+- **`wasm/`, a separate crate carrying the browser ABI.** FFI is its declared
+  business; the scoring crate remains `forbid(unsafe_code)` and untouched.
+
+  The ABI takes arguments rather than a pointer and a length, because pointer
+  marshalling needs raw dereferences. It bends cleanly around that because each
+  rule fires at most once and there are eight kinds, so **eight arguments is the
+  whole ledger, not a truncation**. A ninth would mean a rule fired twice, which
+  the scanner cannot do.
+
+  Each argument packs kind, points and terms into a `u32`, with an explicit
+  present bit so an empty slot is skipped rather than scored. An unknown kind is
+  refused instead of mapped to a neighbour: scoring a caller's bug as `Negative`
+  would hide it behind a plausible number.
+
+  Exports: `brs_score`, `brs_gate`, `brs_rule_version`. The last exists so a
+  caller can refuse to compare a browser-computed number with a published one
+  when the rules differ.
+
+- CI builds the artifact, then **instantiates it under wasmtime and calls it**.
+  Built is not the same as loadable, and a module that compiles while exporting
+  nothing usable should fail in the job rather than in someone's browser.
+
 ## [0.3.1] — 2026-08-08
 
 ### Fixed

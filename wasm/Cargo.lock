@@ -5,3 +5,10 @@ version = 3
 [[package]]
 name = "axonos-brs"
 version = "0.4.0"
+
+[[package]]
+name = "axonos-brs-wasm"
+version = "0.1.0"
+dependencies = [
+ "axonos-brs",
+]

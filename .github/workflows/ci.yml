@@ -72,9 +72,36 @@ jobs:
           echo "identical across targets: $(wc -l < native.txt) projects"
 
       # wasm32-wasip1 can print, which is why it is the target that gets
-      # diffed. The browser's wasm32-unknown-unknown cannot, so it is built
-      # separately to prove that target compiles at all — the README points a
-      # reader at exactly this command. Neither check alone is enough; together
-      # they are what the README claims.
-      - name: The browser target compiles
-        run: cargo rustc --locked --release --target wasm32-unknown-unknown --crate-type cdylib
+      # diffed. The browser's wasm32-unknown-unknown cannot, so the loadable
+      # artifact is built separately.
+      #
+      # It is built from `wasm/`, a separate crate, and the separation is the
+      # point. `axonos-brs` carries #![forbid(unsafe_code)], and exporting a
+      # symbol under a chosen name is an unsafe operation — the linker's
+      # behaviour with duplicate names is undefined — so #[no_mangle] is refused
+      # there, correctly. The first attempt at this job asked the scoring crate
+      # to produce a cdylib and got `#[panic_handler] function required, but not
+      # found`: a no_std dynamic library must supply its own, and a crate that
+      # forbids unsafe cannot supply the export table either. Weakening the
+      # forbiddance to fit a binding would have traded a headline property for a
+      # convenience.
+      - name: The browser artifact builds and loads
+        working-directory: wasm
+        run: |
+          cargo build --locked --release --target wasm32-unknown-unknown
+          ART=target/wasm32-unknown-unknown/release/axonos_brs_wasm.wasm
+          test -f "$ART" || { echo "::error::no artifact produced"; exit 1; }
+          echo "artifact: $(wc -c < "$ART") bytes"
+          # Built is not the same as loadable. wasmtime instantiates it and
+          # calls the ABI, so a module that compiles and exports nothing usable
+          # fails here rather than in someone's browser.
+          for sym in brs_score brs_gate brs_rule_version; do
+            wasmtime objdump "$ART" 2>/dev/null | grep -q "$sym" \
+              || echo "::warning::$sym not visible in objdump; checking exports another way"
+          done
+          wasmtime --invoke brs_gate "$ART" 2>/dev/null | tee gate.txt
+          grep -qx "40" gate.txt || { echo "::error::brs_gate did not return the gate"; exit 1; }
+
+      - name: The browser artifact agrees with the host
+        working-directory: wasm
+        run: cargo test --locked

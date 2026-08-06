@@ -1,0 +1,27 @@
+[package]
+name = "axonos-brs-wasm"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "Apache-2.0 OR MIT"
+description = "Browser ABI for axonos-brs. Separate from the scoring crate on purpose: exporting a symbol under a chosen name is an unsafe operation, and axonos-brs forbids unsafe code."
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+axonos-brs = { path = ".." }
+
+# Both profiles abort: unwinding needs an eh_personality lang item that no_std
+# does not provide, and a scoring function has nothing to unwind for.
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+opt-level = "s"
+lto = true
+panic = "abort"
+
+# Standalone rather than a workspace member: it builds only for wasm32, and a
+# workspace would drag it into every host-target command in CI.
+[workspace]
